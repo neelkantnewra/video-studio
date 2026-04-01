@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 
-const useAppStore = create((set) => ({
+const useAppStore = create((set, get) => ({
   // --- Feature toggles ---
   features: {
     bgRemoval: true,
-    eyeContact: false, // disabled until model is ready
+    eyeContact: false,
   },
   toggleFeature: (key) =>
     set((state) => ({
@@ -14,14 +14,47 @@ const useAppStore = create((set) => ({
       },
     })),
 
+  // --- Processing mode ---
+  processingMode: 'local',        // 'local' | 'remote'
+  remoteUrl: '',                  // ngrok URL pasted by user
+  remoteStatus: 'idle',           // 'idle' | 'checking' | 'connected' | 'unreachable'
+  setProcessingMode: (mode) => set({ processingMode: mode }),
+  setRemoteUrl: (url) => set({ remoteUrl: url, remoteStatus: 'idle' }),
+  setRemoteStatus: (status) => set({ remoteStatus: status }),
+
+  // Check if remote URL is reachable
+ checkRemoteUrl: async () => {
+  const { remoteUrl } = get()
+  if (!remoteUrl) return
+
+  set({ remoteStatus: 'checking' })
+  try {
+    const res = await fetch(`${remoteUrl.replace(/\/$/, '')}/health`, {
+      signal: AbortSignal.timeout(5000),
+      headers: {
+        'ngrok-skip-browser-warning': 'true',  // ← skips ngrok warning page
+      },
+    })
+    const data = await res.json()
+    if (res.ok && data.status === 'ok') {
+      set({ remoteStatus: 'connected' })
+    } else {
+      set({ remoteStatus: 'unreachable' })
+    }
+  } catch {
+    set({ remoteStatus: 'unreachable' })
+  }
+},
+
+  
+
   // --- Upload state ---
-  videoFile: null,       // raw File object
-  videoUrl: null,        // local object URL for preview
+  videoFile: null,
+  videoUrl: null,
   setVideo: (file) =>
     set({
       videoFile: file,
       videoUrl: URL.createObjectURL(file),
-      // reset everything downstream when new video is uploaded
       jobId: null,
       jobStatus: null,
       progress: 0,
@@ -47,11 +80,11 @@ const useAppStore = create((set) => ({
   error: null,
   setError: (error) => set({ error }),
 
-  // --- Background color for removal ---
-  bgColor: '#00FF00',  // default green, user can change
+  // --- Background color ---
+  bgColor: '#00FF00',
   setBgColor: (color) => set({ bgColor: color }),
 
-  // --- Reset everything ---
+  // --- Reset ---
   reset: () =>
     set({
       videoFile: null,

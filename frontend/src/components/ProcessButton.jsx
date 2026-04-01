@@ -19,20 +19,40 @@ export default function ProcessButton() {
   const isDone       = jobStatus === 'done'
   const noFeature    = !features.bgRemoval && !features.eyeContact
 
+  // Debug — log state on every render
+  console.log('[ProcessButton] state:', {
+    hasVideo: !!videoFile,
+    jobStatus,
+    isProcessing,
+    isDone,
+    noFeature,
+    bgColor,
+  })
+
   const handleProcess = useCallback(async () => {
-    if (!videoFile || isProcessing) return
+    console.log('[ProcessButton] clicked', { videoFile: !!videoFile, isProcessing })
+
+    if (!videoFile) {
+      console.log('[ProcessButton] blocked — no video file')
+      return
+    }
+    if (isProcessing) {
+      console.log('[ProcessButton] blocked — already processing')
+      return
+    }
 
     setError(null)
+    console.log('[ProcessButton] starting upload...')
 
     try {
-      // 1. Upload & start job — pass bgColor
       const { job_id } = await uploadVideo(videoFile, bgColor)
+      console.log('[ProcessButton] upload success, job_id:', job_id)
       setJob(job_id)
 
-      // 2. Poll until done or error
       const poll = setInterval(async () => {
         try {
           const data = await getJobStatus(job_id)
+          console.log('[ProcessButton] poll:', data)
           updateProgress(data.progress, data.total)
           setJobStatus(data.status)
 
@@ -40,12 +60,12 @@ export default function ProcessButton() {
             clearInterval(poll)
             setResultUrl(getDownloadUrl(job_id))
           }
-
           if (data.status === 'error') {
             clearInterval(poll)
             setError(data.error || 'Processing failed')
           }
         } catch (err) {
+          console.log('[ProcessButton] poll error:', err)
           clearInterval(poll)
           setError(err.message)
           setJobStatus('error')
@@ -53,6 +73,7 @@ export default function ProcessButton() {
       }, POLL_INTERVAL_MS)
 
     } catch (err) {
+      console.log('[ProcessButton] upload error:', err)
       setError(err.message)
       setJobStatus('error')
     }
