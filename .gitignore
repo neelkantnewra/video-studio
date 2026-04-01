@@ -212,5 +212,16 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env.local
 
+#backend
+
+backend/temp/outputs/
+backend/temp/uploads/
+backend/temp/processed/
+
+
+temp/outputs/
+temp/uploads/
+temp/processed/
+
 # Node
 node_modules/
