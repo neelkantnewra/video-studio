@@ -217,11 +217,12 @@ frontend/.env.local
 backend/temp/outputs/
 backend/temp/uploads/
 backend/temp/processed/
-
+backend/tests/
 
 temp/outputs/
 temp/uploads/
 temp/processed/
+
 
 # Node
 node_modules/

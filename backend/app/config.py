@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # Feature flags
     FEATURE_BG_REMOVAL: bool = True
-    FEATURE_EYE_CONTACT: bool = False
+    FEATURE_EYE_CONTACT: bool = True
 
     # Processing
     MAX_VIDEO_SIZE_MB: int = 500

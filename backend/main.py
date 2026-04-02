@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes import bg_removal
 from app.models.registry import preload_models
+from app.routes import eye_contact
 
 
 @asynccontextmanager
@@ -46,13 +47,12 @@ if settings.FEATURE_BG_REMOVAL:
     )
 
 # Future:
-# if settings.FEATURE_EYE_CONTACT:
-#     from app.routes import eye_contact
-#     app.include_router(
-#         eye_contact.router,
-#         prefix="/api/v1/eye-contact",
-#         tags=["eye-contact"]
-#     )
+if settings.FEATURE_EYE_CONTACT:
+    app.include_router(
+        eye_contact.router,
+        prefix="/api/v1/eye-contact",
+        tags=["eye-contact"]
+    )
 
 
 @app.get("/health")

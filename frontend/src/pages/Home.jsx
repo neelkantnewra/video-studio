@@ -7,6 +7,7 @@ import ProcessButton from '../components/ProcessButton.jsx'
 import ProgressBar from '../components/ProgressBar.jsx'
 import ResultPreview from '../components/ResultPreview.jsx'
 import ProcessingMode from '../components/ProcessingMode.jsx'
+import SetupCard from '../features/eyeContact/SetupCard'
 
 export default function Home() {
   const videoUrl  = useAppStore((s) => s.videoUrl)
@@ -25,9 +26,30 @@ export default function Home() {
 
       {/* Body */}
       {!hasVideo ? (
-        // ── Upload screen ────────────────────────────────────────
-        <VideoUpload />
-      ) : (
+  <div className="flex flex-1 overflow-hidden">
+
+    {/* Left — video drop zone */}
+    <div className="flex-1 flex items-center justify-center p-8">
+      <VideoUpload />
+    </div>
+
+    {/* Divider */}
+    <div className="w-px bg-gray-200 self-stretch" />
+
+    {/* Right — eye contact setup card */}
+    <div className="w-80 shrink-0 flex flex-col">
+      <div className="px-6 pt-6 pb-3 border-b border-gray-100">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          Eye Contact
+        </p>
+      </div>
+      <div className="flex-1">
+        <SetupCard />
+      </div>
+    </div>
+
+  </div>
+) : ( 
         // ── Editor layout ────────────────────────────────────────
         <div className="flex flex-1 overflow-hidden">
 
