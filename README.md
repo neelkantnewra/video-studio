@@ -49,10 +49,56 @@ Typical workflow:
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- MacBook or any machine with 8GB+ RAM
+## 🔧 Prerequisites
+
+### 1. Python 3.11+
+
+    # Check if installed
+    python3 --version
+
+    # Install via Homebrew (Mac)
+    brew install python@3.11
+
+### 2. Node.js 18+
+
+    # Check if installed
+    node --version
+
+    # Install via Homebrew (Mac)
+    brew install node
+
+    # Or download from
+    https://nodejs.org
+
+### 3. FFmpeg
+
+    # Check if installed
+    ffmpeg -version
+
+    # Install via Homebrew (Mac)
+    brew install ffmpeg
+
+    # Ubuntu / Debian
+    sudo apt install ffmpeg
+
+    # Windows
+    https://ffmpeg.org/download.html
+
+### 4. Homebrew (Mac only — needed for above)
+
+    # Install Homebrew if you dont have it
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+
+| Tool | Version | Install |
+|------|---------|---------|
+| Python | 3.11+ | brew install python@3.11 |
+| Node.js | 18+ | brew install node |
+| FFmpeg | Any | brew install ffmpeg |
+| Homebrew | Latest | see above Mac only |
+| RAM | 8GB+ | — |
+
+
 
 ### 1. Clone and configure
 
