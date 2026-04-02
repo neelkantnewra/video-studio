@@ -28,13 +28,13 @@
 | 🟢 | **AI Background Removal** | ✅ Ready | U2Net via rembg | ~2-3 min for 30s video |
 | 🔵 | **Eye Contact Correction** | 🔧 Training | Custom Kaggle-trained | Coming soon |
 
-<p align="center">
+<!-- <p align="center">
   <img src="docs/screenshots/feature-bg-removal.png" alt="Background removal result" width="700"/>
-</p>
+</p> -->
 
 ---
 
-## 🎥 Demo
+<!-- ## 🎥 Demo
 
 <p align="center">
   <img src="docs/demo.gif" alt="Video Studio in action" width="750"/>
@@ -45,7 +45,7 @@ Typical workflow:
 2. MacBook processes frame-by-frame on CPU
 3. Download finished result from any browser
 
----
+--- -->
 
 ## 🚀 Quick Start
 
@@ -60,9 +60,9 @@ Typical workflow:
     cd video-studio
     cp .env.example .env
 
-<p align="center">
+<!-- <p align="center">
   <img src="docs/screenshots/terminal-clone.png" alt="Clone command" width="600"/>
-</p>
+</p> -->
 
 ### 2. Start Backend
 
@@ -74,9 +74,9 @@ Typical workflow:
 
 First run downloads U2Net weights (~170MB) to ~/.u2net/ automatically.
 
-<p align="center">
+<!-- <p align="center">
   <img src="docs/screenshots/backend-running.png" alt="FastAPI server running" width="650"/>
-</p>
+</p> -->
 
 ### 3. Start Frontend
 
@@ -84,9 +84,9 @@ First run downloads U2Net weights (~170MB) to ~/.u2net/ automatically.
     npm install
     npm run dev
 
-<p align="center">
+<!-- <p align="center">
   <img src="docs/screenshots/frontend-running.png" alt="Vite dev server" width="650"/>
-</p>
+</p> -->
 
 ### 4. Open in Browser
 
@@ -95,9 +95,9 @@ First run downloads U2Net weights (~170MB) to ~/.u2net/ automatically.
 | MacBook local | http://localhost:5173 |
 | iPad or Android tablet | http://YOUR_MAC_IP:5173 |
 
-<p align="center">
+<!-- <p align="center">
   <img src="docs/screenshots/tablet-view.png" alt="Android tablet interface" width="500"/>
-</p>
+</p> -->
 
 ---
 
@@ -192,7 +192,7 @@ Weights are not committed to git. They are either auto-downloaded or trained on 
 
 See kaggle_notebooks/README.md for training instructions.
 
----
+<!-- ---
 
 ## 📸 Screenshots
 
@@ -202,7 +202,7 @@ See kaggle_notebooks/README.md for training instructions.
 | <img src="docs/screenshots/processing.png" width="300"/> | Processing — Real-time progress bar |
 | <img src="docs/screenshots/result.png" width="300"/> | Result — Preview and download |
 
----
+--- -->
 
 ## 🛠️ Development
 
