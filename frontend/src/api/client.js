@@ -1,7 +1,8 @@
 import useAppStore from '../store/useAppStore'
 
 const LOCAL_BASE_URL = 'http://localhost:8000'
-const CHUNK_SIZE = 1 * 1024 * 1024 // 1MB chunks — safely under ngrok limit
+const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB — fewer round trips 
+const MAX_CONCURRENT = 4  
 
 function getBaseUrl() {
   const { processingMode, remoteUrl } = useAppStore.getState()
@@ -22,18 +23,19 @@ function getHeaders() {
 // ── Chunked upload (used for remote mode) ────────────────────
 
 async function uploadChunked(file, bgColor, onProgress) {
-  const baseUrl  = getBaseUrl()
-  const headers  = getHeaders()
-  const uploadId = crypto.randomUUID()
+  const baseUrl     = getBaseUrl()
+  const headers     = getHeaders()
+  const uploadId    = crypto.randomUUID()
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
 
   console.log(`[client] Chunked upload: ${totalChunks} chunks, uploadId: ${uploadId}`)
 
-  // Upload each chunk
-  for (let i = 0; i < totalChunks; i++) {
+  let completedChunks = 0
+
+  // ── Single chunk uploader ──────────────────────────────────
+  async function uploadChunk(i) {
     const start = i * CHUNK_SIZE
-    const end   = Math.min(start + CHUNK_SIZE, file.size)
-    const chunk = file.slice(start, end)
+    const chunk = file.slice(start, Math.min(start + CHUNK_SIZE, file.size))
 
     const formData = new FormData()
     formData.append('file', new File([chunk], file.name))
@@ -51,15 +53,27 @@ async function uploadChunked(file, bgColor, onProgress) {
       throw new Error(err.detail || `Chunk ${i} upload failed`)
     }
 
-    // Report chunk progress to UI
-    if (onProgress) {
-      onProgress(i + 1, totalChunks)
-    }
-
-    console.log(`[client] Chunk ${i + 1}/${totalChunks} uploaded`)
+    completedChunks++
+    if (onProgress) onProgress(completedChunks, totalChunks)
+    console.log(`[client] Chunk ${completedChunks}/${totalChunks} uploaded`)
   }
 
-  // Assemble chunks and start job
+  // ── Worker: pulls from queue until empty ───────────────────
+  const queue = Array.from({ length: totalChunks }, (_, i) => i)
+
+  async function worker() {
+    while (queue.length > 0) {
+      const i = queue.shift()
+      await uploadChunk(i)
+    }
+  }
+
+  // ── Spawn MAX_CONCURRENT workers in parallel ───────────────
+  await Promise.all(
+    Array.from({ length: MAX_CONCURRENT }, () => worker())
+  )
+
+  // ── Assemble after all chunks landed ──────────────────────
   console.log(`[client] Assembling chunks...`)
   const assembleData = new FormData()
   assembleData.append('upload_id', uploadId)
@@ -78,8 +92,10 @@ async function uploadChunked(file, bgColor, onProgress) {
     throw new Error(err.detail || 'Assembly failed')
   }
 
-  return res.json() // { job_id, status }
+  return res.json()
 }
+
+
 
 // ── Standard upload (used for local mode) ────────────────────
 
