@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # Server
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = 8000
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
+    ALLOWED_ORIGINS: List[str] = ["*"]
 
     # Paths — all absolute, works regardless of where you run from
     UPLOAD_DIR: Path = BASE_DIR / "temp" / "uploads"

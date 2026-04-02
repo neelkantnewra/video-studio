@@ -1,6 +1,6 @@
 import useAppStore from '../store/useAppStore'
 
-const LOCAL_BASE_URL = 'http://localhost:8000'
+const LOCAL_BASE_URL = ``
 const CHUNK_SIZE = 3 * 1024 * 1024 // modify to control size of each chunk (3MB here)
 const MAX_CONCURRENT = 4  
 

@@ -10,6 +10,8 @@ const GAZE_STATES = {
   looking_away: { x: -0.6,  y: 0.4  },
 }
 
+const API_BASE = `http://${window.location.hostname}:8000`
+
 function FacePreview({ gazeState = 'idle' }) {
   const mountRef = useRef(null)
   const sceneRef = useRef({})
@@ -142,7 +144,7 @@ export default function SetupCard() {
 
   // Check if model already trained
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/eye-contact/status')
+    fetch(`${API_BASE}/api/v1/eye-contact/status`)
       .then(r => r.json())
       .then(d => setIsTrained(d.trained))
       .catch(() => {})

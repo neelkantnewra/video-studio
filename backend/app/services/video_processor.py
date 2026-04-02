@@ -3,6 +3,9 @@ import numpy as np
 import subprocess
 from pathlib import Path
 from typing import Callable, Optional
+import warnings
+
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="rembg")
 
 
 FrameFn = Callable[[np.ndarray], np.ndarray]

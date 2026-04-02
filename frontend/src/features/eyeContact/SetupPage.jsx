@@ -10,6 +10,8 @@ const GAZE_STATES = {
   idle:         { irisX: 0,     irisY: 0,     headY: 0,    headX: 0    },
 }
 
+const API_BASE = `http://${window.location.hostname}:8000`
+
 const STEPS = [
   {
     id: 'welcome',
@@ -222,19 +224,24 @@ export default function SetupPage() {
   const isLast  = stepIdx === STEPS.length - 1
 
   // Start webcam
-  useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
-      .then(stream => {
-        streamRef.current = stream
-        if (videoRef.current) videoRef.current.srcObject = stream
-      })
-      .catch(err => console.error('[setup] Webcam error:', err))
+useEffect(() => {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    console.warn('[setup] Camera blocked — needs HTTPS or localhost')
+    return  // ← exits gracefully instead of crashing
+  }
 
-    return () => {
-      streamRef.current?.getTracks().forEach(t => t.stop())
-      clearInterval(timerRef.current)
-    }
-  }, [])
+  navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
+    .then(stream => {
+      streamRef.current = stream
+      if (videoRef.current) videoRef.current.srcObject = stream
+    })
+    .catch(err => console.error('[setup] Webcam error:', err))
+
+  return () => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    clearInterval(timerRef.current)
+  }
+}, [])
 
   const captureFrame = useCallback(() => {
     const video = videoRef.current
@@ -294,7 +301,7 @@ async function handleSave() {
       })
     }
 
-    const res = await fetch('http://localhost:8000/api/v1/eye-contact/save-samples', {
+    const res = await fetch(`${API_BASE}/api/v1/eye-contact/save-samples`, {
       method: 'POST',
       body: formData,
     })
