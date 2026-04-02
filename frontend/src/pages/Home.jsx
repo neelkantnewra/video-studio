@@ -16,6 +16,7 @@ export default function Home() {
   const hasVideo     = !!videoUrl
   const isProcessing = jobStatus === 'queued' || jobStatus === 'processing'
   const isDone       = jobStatus === 'done'
+  const isUploading  = jobStatus === 'uploading'
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -55,7 +56,7 @@ export default function Home() {
             {!isDone && <ProcessButton />}
 
             {/* Progress */}
-            {(isProcessing || isDone) && <ProgressBar />}
+            {(isUploading || isProcessing || isDone) && <ProgressBar />}
 
             {/* Result actions */}
             {isDone && (

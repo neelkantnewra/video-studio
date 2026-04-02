@@ -5,54 +5,47 @@ import { uploadVideo, getJobStatus, getDownloadUrl } from '../api/client'
 const POLL_INTERVAL_MS = 1000
 
 export default function ProcessButton() {
-  const videoFile      = useAppStore((s) => s.videoFile)
-  const jobStatus      = useAppStore((s) => s.jobStatus)
-  const features       = useAppStore((s) => s.features)
-  const bgColor        = useAppStore((s) => s.bgColor)
-  const setJob         = useAppStore((s) => s.setJob)
-  const updateProgress = useAppStore((s) => s.updateProgress)
-  const setJobStatus   = useAppStore((s) => s.setJobStatus)
-  const setResultUrl   = useAppStore((s) => s.setResultUrl)
-  const setError       = useAppStore((s) => s.setError)
+  const videoFile        = useAppStore((s) => s.videoFile)
+  const jobStatus        = useAppStore((s) => s.jobStatus)
+  const features         = useAppStore((s) => s.features)
+  const bgColor          = useAppStore((s) => s.bgColor)
+  const setJob           = useAppStore((s) => s.setJob)
+  const setJobStatus     = useAppStore((s) => s.setJobStatus)
+  const updateProgress   = useAppStore((s) => s.updateProgress)
+  const setUploadProgress = useAppStore((s) => s.setUploadProgress)
+  const setResultUrl     = useAppStore((s) => s.setResultUrl)
+  const setError         = useAppStore((s) => s.setError)
 
+  const isUploading  = jobStatus === 'uploading'
   const isProcessing = jobStatus === 'queued' || jobStatus === 'processing'
   const isDone       = jobStatus === 'done'
+  const isBusy       = isUploading || isProcessing
   const noFeature    = !features.bgRemoval && !features.eyeContact
 
-  // Debug — log state on every render
-  console.log('[ProcessButton] state:', {
-    hasVideo: !!videoFile,
-    jobStatus,
-    isProcessing,
-    isDone,
-    noFeature,
-    bgColor,
-  })
-
   const handleProcess = useCallback(async () => {
-    console.log('[ProcessButton] clicked', { videoFile: !!videoFile, isProcessing })
-
-    if (!videoFile) {
-      console.log('[ProcessButton] blocked — no video file')
-      return
-    }
-    if (isProcessing) {
-      console.log('[ProcessButton] blocked — already processing')
-      return
-    }
+    if (!videoFile || isBusy) return
 
     setError(null)
-    console.log('[ProcessButton] starting upload...')
 
     try {
-      const { job_id } = await uploadVideo(videoFile, bgColor)
-      console.log('[ProcessButton] upload success, job_id:', job_id)
+      // Show uploading state immediately
+      setJobStatus('uploading')
+      setUploadProgress(0, 0)
+
+      // Chunk progress callback
+      const onChunkProgress = (current, total) => {
+        setUploadProgress(current, total)
+      }
+
+      // Upload (chunked for remote, direct for local)
+      const { job_id } = await uploadVideo(videoFile, bgColor, onChunkProgress)
+
+      // Upload done — now polling
       setJob(job_id)
 
       const poll = setInterval(async () => {
         try {
           const data = await getJobStatus(job_id)
-          console.log('[ProcessButton] poll:', data)
           updateProgress(data.progress, data.total)
           setJobStatus(data.status)
 
@@ -65,7 +58,6 @@ export default function ProcessButton() {
             setError(data.error || 'Processing failed')
           }
         } catch (err) {
-          console.log('[ProcessButton] poll error:', err)
           clearInterval(poll)
           setError(err.message)
           setJobStatus('error')
@@ -73,11 +65,11 @@ export default function ProcessButton() {
       }, POLL_INTERVAL_MS)
 
     } catch (err) {
-      console.log('[ProcessButton] upload error:', err)
       setError(err.message)
       setJobStatus('error')
     }
-  }, [videoFile, isProcessing, bgColor, setJob, updateProgress, setJobStatus, setResultUrl, setError])
+  }, [videoFile, isBusy, bgColor, setJob, setJobStatus, updateProgress,
+      setUploadProgress, setResultUrl, setError])
 
   if (!videoFile) return null
 
@@ -92,16 +84,18 @@ export default function ProcessButton() {
   return (
     <button
       onClick={handleProcess}
-      disabled={isProcessing || isDone}
+      disabled={isBusy || isDone}
       className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors ${
-        isProcessing
+        isBusy
           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
           : isDone
           ? 'bg-green-50 text-green-600 cursor-default'
           : 'bg-gray-900 text-white hover:bg-gray-700 active:bg-gray-800'
       }`}
     >
-      {isProcessing
+      {isUploading
+        ? 'Uploading…'
+        : isProcessing
         ? 'Processing…'
         : isDone
         ? '✓ Done'
