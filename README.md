@@ -1,7 +1,7 @@
 # 🎬 Video Studio
 
 <p align="center">
-  <img src="docs/assets/banner.png" alt="Video Studio Banner" width="800"/>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,100:238636&height=200&section=header&text=🎬%20Video%20Studio&fontSize=60&fontColor=ffffff&animation=fadeIn&desc=Local%20AI%20Video%20Editor%20—%20No%20Cloud.%20No%20GPU.%20Just%20Results.&descSize=20&descAlignY=75"/>
 </p>
 
 > **Your personal AI video studio** — runs entirely on your MacBook, controlled from any tablet on your network. No cloud. No subscriptions. No data leaves your device.
