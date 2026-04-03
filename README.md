@@ -274,8 +274,9 @@ See kaggle_notebooks/README.md for training instructions.
 - [x] Project architecture and GitHub setup
 - [x] Background removal — backend pipeline
 - [x] Background removal — web UI
+- [x] Eye contact with mathematical approach
+- [x] Eye contact correction — smart correction skip downward gaze
 - [ ] Eye contact correction — Kaggle training notebook
-- [ ] Eye contact correction — smart correction skip downward gaze
 - [ ] Eye contact correction — web UI
 - [ ] Android tablet optimised layout
 - [ ] ONNX Runtime optimisation for faster CPU inference
