@@ -291,4 +291,4 @@ def process_image(image_path):
 # 8. RUN
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    process_image('test.jpg')
+    process_image('test2.jpg')
