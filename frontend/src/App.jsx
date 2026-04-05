@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 import SetupPage from './features/eyeContact/SetupPage.jsx'
+import AnnotationPage from './pages/AnnotationPage.jsx'
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
         <Routes>
           <Route path="/"                  element={<Home />} />
           <Route path="/setup/eye-contact" element={<SetupPage />} />
+          <Route path="/annotate"          element={<AnnotationPage />} />
         </Routes>
       </div>
     </BrowserRouter>

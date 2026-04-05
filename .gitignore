@@ -218,6 +218,7 @@ backend/temp/outputs/
 backend/temp/uploads/
 backend/temp/processed/
 backend/tests/
+backend/data/
 
 temp/outputs/
 temp/uploads/
