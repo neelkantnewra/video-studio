@@ -23,14 +23,11 @@
 
 ## ✨ Features
 
-| | Feature | Status | Model | Speed |
+| | Feature | Status | Model | Notes |
 |---|---------|--------|-------|-------|
-| 🟢 | **AI Background Removal** | ✅ Ready | U2Net via rembg | ~2-3 min for 30s video |
-| 🔵 | **Eye Contact Correction** | 🔧 Training | Custom Kaggle-trained | Coming soon |
-
-<!-- <p align="center">
-  <img src="docs/screenshots/feature-bg-removal.png" alt="Background removal result" width="700"/>
-</p> -->
+| 🟢 | **AI Background Removal** | ✅ Ready | U2Net via rembg | ~2–3 min for 30s video |
+| 🔵 | **Eye Contact Correction** | 🔧 In Progress | Custom U-Net trained on personal footage | Data collected, annotation done |
+| 🟡 | **Annotation Studio** | ✅ Ready | MediaPipe FaceLandmarker | Built-in dataset builder |
 
 ---
 
@@ -46,6 +43,87 @@ Typical workflow:
 3. Download finished result from any browser
 
 --- -->
+
+---
+
+## 🧠 Eye Contact Pipeline
+
+This is the most technically interesting part of the project.
+Rather than using a generic model, we train a **personalized gaze correction model** —
+specific to one face, one camera, one lighting setup.
+
+### Why personalized?
+
+    Generic models:              Personalized model:
+    ❌ Trained on thousands      ✅ Trained on YOUR face
+    ❌ Average correction        ✅ Exact iris position for your eyes
+    ❌ Often looks unnatural     ✅ Preserves your natural eye shape
+    ❌ Needs GPU at runtime      ✅ Runs on Mac CPU after training
+
+### Full Pipeline
+
+    Step 1 — Capture  (SetupPage in the app)
+      Webcam records ~450 frames across 3 gaze directions:
+      • at_camera    (150 frames)  ← ground truth / target
+      • slightly_off (150 frames)  ← looking at screen edges
+      • looking_away (150 frames)  ← looking at phone / keyboard
+
+      Saved to:  backend/data/raw_captures/{session_id}/
+      Also writes manifest.csv — maps each frame to its gaze label
+
+    Step 2 — Annotation  (Annotation Studio tab in the app)
+      MediaPipe FaceLandmarker runs LOCALLY (no GPU needed):
+      • Detects both eyes with full eyelid landmarks
+      • Locates iris center, pupil, eyelid upper/lower points
+      • Pre-fills all landmarks automatically
+      • User can drag handles to correct any errors
+      • Saves per-frame JSON + annotations.csv per session
+
+      Why local MediaPipe?
+      → Kaggle has broken MediaPipe support in recent kernels
+      → MediaPipe is CPU-only anyway — no GPU needed
+      → Runs fine on MacBook
+
+    Step 3 — Export
+      Click "Export Training Pairs" in Annotation Studio:
+      • Copies images → backend/data/training_pairs/inputs/
+                        backend/data/training_pairs/targets/
+      • Writes training_data.csv with all landmark coordinates
+
+    Step 4 — Train on Kaggle GPU
+      Upload training_pairs/ folder to Kaggle dataset
+      Run kaggle_notebooks/eye_contact_training.ipynb
+      • Reads training_data.csv — no MediaPipe needed on Kaggle ✅
+      • Trains a U-Net style model:
+          input  = face looking away
+          output = face looking at camera
+      • Downloads best weights → ml_models/eye_contact/
+
+    Step 5 — Inference  (local, CPU)
+      FastAPI loads weights at startup
+      Applies gaze correction frame-by-frame during video processing
+      No GPU required at inference time
+
+### Annotation Studio
+
+A full annotation tool built directly into the app — no external tools needed.
+
+    Features:
+    ✅ ⚡ Auto-annotate all frames with one click (MediaPipe)
+    ✅ Both eyes annotated simultaneously
+    ✅ Draggable iris center handles (green dots)
+    ✅ Draggable eyelid point handles (blue dots)
+    ✅ 9-direction gaze labeling grid
+    ✅ Target frame marking (looking at camera = ground truth)
+    ✅ Per-session progress tracking (done / pending counters)
+    ✅ Frames grouped by gaze label
+    ✅ Exports to CSV + image pairs for Kaggle training
+    ✅ Keyboard shortcuts: A/D navigate · S save · T toggle target
+
+---
+
+
+
 
 ## 🚀 Quick Start
 
@@ -167,24 +245,33 @@ All inference runs on your Mac CPU at runtime — no GPU needed.
 ### System Flow
 
     Browser (React + Vite)
-        |  HTTP
+        |  HTTP / REST
     FastAPI Server
-        |              |
-    /bg-removal    /eye-contact (planned)
-        |              |
-    U2Net ONNX    Custom Model
-        |
-    WebSocket progress updates back to browser
+        |               |               |
+    /bg-removal    /eye-contact    /annotation
+        |               |               |
+    U2Net ONNX    Custom U-Net    MediaPipe FaceLandmarker
 
-### Data Flow — Background Removal
+### Data Flow — Eye Contact
 
-    User uploads video
-        --> POST /bg-removal/upload
-        --> BG Service starts processing
-        --> U2Net runs frame-by-frame inference
-        --> Alpha mask applied per frame
-        --> Progress pushed via WebSocket
-        --> Download URL returned on completion
+    SetupPage (webcam capture)
+        → backend/data/raw_captures/{session_id}/
+        → manifest.csv
+
+    Annotation Studio
+        → backend/data/annotated/{session_id}/annotations.csv
+        → per-frame JSON
+
+    Export
+        → backend/data/training_pairs/inputs/
+        → backend/data/training_pairs/targets/
+        → backend/data/training_pairs/training_data.csv
+
+    Kaggle Training
+        → ml_models/eye_contact/eye_gaze_weights_best.weights.h5
+
+    Inference
+        → FastAPI applies correction frame-by-frame
 
 ---
 
@@ -192,29 +279,44 @@ All inference runs on your Mac CPU at runtime — no GPU needed.
 
     video-studio/
     ├── backend/
-    │   ├── main.py                   # Entry point
+    │   ├── main.py                     # Entry point + route registration
+    │   ├── data/                       # Runtime data (gitignored)
+    │   │   ├── raw_captures/           # Webcam frames per session
+    │   │   ├── annotated/              # Landmark JSONs + annotations.csv
+    │   │   └── training_pairs/         # Final training images + CSV
     │   └── app/
-    │       ├── config.py             # Env vars and feature flags
-    │       ├── routes/               # One file per feature
-    │       ├── services/             # Business logic and processing
-    │       ├── models/               # Model loader and registry
-    │       └── utils/                # Shared helpers
+    │       ├── config.py               # Env vars and feature flags
+    │       ├── routes/
+    │       │   ├── bg_removal.py
+    │       │   ├── eye_contact.py      # Frame capture + session management
+    │       │   └── annotation.py       # MediaPipe auto-detect + annotation CRUD
+    │       ├── services/               # Business logic and processing
+    │       ├── models/                 # Model loader and registry
+    │       └── utils/                  # Shared helpers
     │
     ├── frontend/
     │   └── src/
-    │       ├── features/             # bgRemoval/ eyeContact/
-    │       ├── components/           # Shared UI components
-    │       ├── pages/                # Route-level pages
-    │       ├── hooks/                # Custom React hooks
-    │       ├── api/                  # Backend API client
-    │       └── store/                # Global state Zustand
+    │       ├── features/
+    │       │   ├── eyeContact/         # SetupCard + SetupPage (capture flow)
+    │       │   └── annotation/         # AnnotationTab + AnnotationCanvas
+    │       ├── components/             # Shared UI components
+    │       ├── pages/
+    │       │   ├── Home.jsx
+    │       │   └── AnnotationPage.jsx
+    │       ├── api/
+    │       │   ├── client.js
+    │       │   └── annotationClient.js
+    │       └── store/
+    │           ├── useAppStore.js
+    │           └── useAnnotationStore.js
     │
-    ├── ml_models/                    # gitignored
-    │   ├── bg_removal/
+    ├── ml_models/                      # gitignored — weights only
     │   └── eye_contact/
+    │       ├── face_landmarker.task    # MediaPipe model (auto-downloaded)
+    │       └── *.weights.h5            # Trained gaze model (from Kaggle)
     │
-    ├── kaggle_notebooks/
-    └── temp/                         # Runtime only gitignored
+    ├── notebooks/                      # Training notebooks
+    └── temp/                           # Runtime only, gitignored
 
 ---
 
@@ -223,49 +325,59 @@ All inference runs on your Mac CPU at runtime — no GPU needed.
 Features are toggled via .env — no code changes needed:
 
     FEATURE_BG_REMOVAL=true
-    FEATURE_EYE_CONTACT=false
+    FEATURE_EYE_CONTACT=true
 
 ---
 
 ## 🧠 ML Model Weights
 
-Weights are not committed to git. They are either auto-downloaded or trained on Kaggle.
+Weights are not committed to git.
 
 | Model | Source | Location |
 |-------|--------|----------|
 | U2Net bg removal | Auto-downloaded on first run | ~/.u2net/ |
-| Eye contact | Train via Kaggle notebook export ONNX | ml_models/eye_contact/ |
+| MediaPipe FaceLandmarker | Auto-downloaded on first run | ml_models/eye_contact/ |
+| Eye contact gaze model | Train via Kaggle notebook | ml_models/eye_contact/*.h5 |
 
-See kaggle_notebooks/README.md for training instructions.
+---
 
-<!-- ---
+## 📊 Training Data Format
 
-## 📸 Screenshots
+training_data.csv — generated by Annotation Studio export:
 
-| | |
-|:---:|:---|
-| <img src="docs/screenshots/upload.png" width="300"/> | Upload — Drag or select your video |
-| <img src="docs/screenshots/processing.png" width="300"/> | Processing — Real-time progress bar |
-| <img src="docs/screenshots/result.png" width="300"/> | Result — Preview and download |
+| Column | Description |
+|--------|-------------|
+| session_id | Capture session identifier |
+| frame_id | Frame filename without extension |
+| gaze_direction | camera / left / right / up / down etc |
+| is_target_frame | true = looking at camera (ground truth) |
+| l_iris_x / l_iris_y | Left iris center in pixels |
+| r_iris_x / r_iris_y | Right iris center in pixels |
+| l_iris_radius / r_iris_radius | Iris radius in pixels |
+| l_openness / r_openness | Eye openness ratio |
+| l_upper_eyelid / l_lower_eyelid | JSON array of eyelid points |
+| r_upper_eyelid / r_lower_eyelid | JSON array of eyelid points |
+| head_yaw / head_pitch / head_roll | Head pose angles |
+| manually_corrected | Pipe-separated list of hand-corrected fields |
+| annotated_at | ISO timestamp of annotation |
 
---- -->
+---
 
 ## 🛠️ Development
 
 ### Useful Commands
 
-    make dev-backend     # Start FastAPI with hot reload
-    make dev-frontend    # Start Vite dev server
-    make clean           # Purge temp files
+    make dev-backend      # Start FastAPI with hot reload
+    make dev-frontend     # Start Vite dev server
+    make clean            # Purge temp files
 
 ### Adding a New Feature
 
-1. Add route       -->  backend/app/routes/your_feature.py
-2. Add service     -->  backend/app/services/your_feature_service.py
-3. Register model  -->  backend/app/models/registry.py
-4. Add flag        -->  .env and config.py
-5. Register route  -->  backend/main.py
-6. Add UI          -->  frontend/src/features/yourFeature/
+    1. Add route    →  backend/app/routes/your_feature.py
+    2. Add service  →  backend/app/services/your_feature_service.py
+    3. Add flag     →  .env and config.py
+    4. Register     →  backend/main.py
+    5. Add UI       →  frontend/src/features/yourFeature/
 
 ---
 
@@ -274,12 +386,20 @@ See kaggle_notebooks/README.md for training instructions.
 - [x] Project architecture and GitHub setup
 - [x] Background removal — backend pipeline
 - [x] Background removal — web UI
-- [x] Eye contact with mathematical approach
-- [x] Eye contact correction — smart correction skip downward gaze
-- [ ] Eye contact correction — Kaggle training notebook
-- [ ] Eye contact correction — web UI
+- [x] Eye contact — mathematical gaze warping approach
+- [x] Eye contact — smart correction with downward gaze skip
+- [x] Eye contact — webcam data capture with session management
+- [x] Eye contact — Annotation Studio with MediaPipe auto-detection
+- [x] Eye contact — dual eye landmark annotation (both eyes simultaneously)
+- [x] Eye contact — eyelid point annotation (upper + lower per eye)
+- [x] Eye contact — CSV export format for Kaggle training
+- [x] Eye contact — sound cues during capture (Web Audio API)
+- [x] Eye contact — countdown timer before capture starts
+- [ ] Eye contact — Kaggle training notebook (U-Net on personal footage)
+- [ ] Eye contact — inference pipeline with trained weights
+- [ ] Eye contact — full video processing integration
 - [ ] Android tablet optimised layout
-- [ ] ONNX Runtime optimisation for faster CPU inference
+- [ ] ONNX export for faster CPU inference
 
 ---
 
@@ -287,10 +407,9 @@ See kaggle_notebooks/README.md for training instructions.
 
 Contributions that improve the architecture or documentation are welcome.
 
-1. Fork the repository
-2. Create a branch:  git checkout -b feature/your-description
-3. Commit with conventional commits:  feat:  fix:  docs:  refactor:
-4. Open a Pull Request
+    git checkout -b feature/your-description
+    # Commit with conventional commits:
+    # feat:  fix:  docs:  refactor:
 
 ### Welcome contributions
 
@@ -304,16 +423,22 @@ Contributions that improve the architecture or documentation are welcome.
 ### Will not merge
 
 - Cloud-native rewrites — defeats local-first purpose
-- GPU runtime requirements — must run on Mac CPU
+- GPU runtime requirements — must run on Mac CPU at inference
 - General-purpose model weights — personal tool by design
 
 ---
 
 ## 📝 Personal Note
 
-Built for my own workflow — recording courses, removing backgrounds, fixing eye contact on a MacBook without expensive cloud tools.
-The eye contact model is trained on my own footage.
-Open-sourced in case the architecture is useful to others building personal AI tools.
+Built for my own workflow — recording courses, removing backgrounds,
+fixing eye contact on a MacBook without expensive cloud tools.
+
+The eye contact model is trained entirely on my own footage using a
+custom annotation pipeline built into the app itself.
+No third-party annotation tools. No external datasets.
+
+Open-sourced in case the architecture is useful to others
+building personal AI tools.
 
 ---
 
@@ -325,9 +450,10 @@ MIT — free to use, modify, and train your own models.
 
 ## 🙏 Acknowledgments
 
-- U2Net  https://github.com/xuebinqin/U-2-Net
-- rembg  https://github.com/danielgatis/rembg
-- ONNX Runtime  https://onnxruntime.ai
+- U2Net          https://github.com/xuebinqin/U-2-Net
+- rembg          https://github.com/danielgatis/rembg
+- MediaPipe      https://github.com/google-ai-edge/mediapipe
+- ONNX Runtime   https://onnxruntime.ai
 
 ---
 
